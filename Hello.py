@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import numpy as np
 
-st.title('Dog Breed Classifier App ')
+st.title('Cat V/s Dog (Breed) Classifier App ')
 st.header('Made By Lakhan Singh :sunglasses:',divider='rainbow')
 
 label = {'afghan_hound': 0,
@@ -132,38 +132,73 @@ if st.checkbox('Do you want to check all breeds of dog that is used in this mode
 if st.checkbox('Check here model summary :sunglasses:'):
     st.text(model_summary)
 
-img = st.file_uploader('## Upload a dog image to classified it breed : ',type=['png', 'jpg','jpeg'])
+class_names = {0: "Cat", 1: "Dog"}
+
+img = st.file_uploader('# Upload a image to classified it : ',type=['png', 'jpg','jpeg'])
+
 
 @st.cache_resource
 
 def load_model():
-    model = tf.keras.models.load_model('Dog_Breed_Classifier.h5',custom_objects={'KerasLayer': hub.KerasLayer})
-    return model
+    model1 = tf.keras.models.load_model('Cat-Dog-Classifier.h5',custom_objects={'KerasLayer': hub.KerasLayer})
+    model2 = tf.keras.models.load_model('Dog_Breed_Classifier.h5',custom_objects={'KerasLayer': hub.KerasLayer})
+    return model1,model2
 
-model = load_model()
+model1,model2 = load_model()
 
 st.text('Model Loaded Suceessfully ...')
 
-def predict(model, img):
-    img = tf.keras.utils.load_img(img,target_size=(400,400))
-    img_array = tf.keras.utils.img_to_array(img)
-    img_array = img_array/255
-    st.image(img_array)
 
-    img_array = np.expand_dims(img_array,axis=0)
-    predictions = model.predict(img_array)
 
-    print('Prediction Value of the image is : ', np.argmax(predictions))
+def model1_prediction(model_1,model_2, input_img):
+    img = tf.keras.utils.load_img(input_img,target_size=(400,400))
+    st.image(img)
+    img = tf.expand_dims(img, axis=0)
+    img = tf.cast(img, dtype=tf.uint8)
 
-    predicted_class = [i for i ,j in label.items() if j == np.argmax(predictions)]
+    predictions = model_1.predict(img, verbose=None)
+    animal_class = np.argmax(predictions[0])
+    predicted_class = class_names[animal_class]
     confidence = round(100*(np.max(predictions[0])), 2)
 
-    st.subheader(f" Predicted Class: {predicted_class[0]}")
+    if animal_class ==0:
+        st.subheader(' Actual Class: Cat')
+    else:
+        st.subheader(' Actual Class: Dog')
+    
+    st.subheader(f" Predicted Class: {predicted_class}")
     st.subheader(f" Confidence: {confidence}%")
 
+    if predicted_class == "Dog":
+
+        img_array = tf.keras.utils.load_img(input_img,target_size=(400,400))
+        img_array = tf.keras.utils.img_to_array(img_array)
+        img_array = img_array/255
+
+        img_array = np.expand_dims(img_array,axis=0)
+        predictions = model_2.predict(img_array)
+
+        #print('Prediction Value of the image is : ', np.argmax(predictions))
+
+        predicted_class = [i for i ,j in label.items() if j == np.argmax(predictions)]
+        confidence = round(100*(np.max(predictions[0])), 2)
+        st.subheader(f" Predicted Breed Class: {predicted_class[0]}")
+        st.subheader(f" Predicted Breed Confidence: {confidence}%")
+
+    
+
+
+
+
+
+
 if st.button('show image with prediction'):
-    result = predict(model , img)
+    if img == None:
+        st.write('Please upload image First')
+
+    else:
+        model1_prediction(model1 , model2 , img)
+
 
 if st.button("Clear All Cache"):
     st.cache_data.clear()
-
